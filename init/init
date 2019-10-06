@@ -1,9 +1,19 @@
 #!/bin/sh
 # runit-inspired, minimalist init system
-ENABLED_DIR=./enabled # directory for enabled services
+# Usage: ./$0 [WD]
+WD=.
+
+if [ ! -z "$1" ]
+then
+  WD="$1"
+fi
+
+ENABLED_DIR=$WD/enabled # directory for enabled services
 HOLD=hold # file for temporarily disabling a service
 LAST_ENABLED= # list of services ("name:PID")
 LOG=log # cumulative log file
+POST_BOOT_D=$WD/post-boot.d # post-boot scripts directory
+PRE_HALT_D=$WD/pre-halt.d # pre-halt scripts directory
 RUN=run # entry point for a service
 
 # extract the name from a service
@@ -18,13 +28,11 @@ _get_service_pid() {
 
 # kill a service
 kill_service() {
-  echo "[$1]" `_get_service_name "$1"` `_get_service_pid "$1"`
   kill -s TERM `_get_service_pid "$1"`
 }
 
 # log service information to the service's log file and STDOUT
 log() {
-  echo "$1 $2"
   echo "$2" | tee -a "$ENABLED_DIR/"`_get_service_name "$1"`"/$LOG"
 }
 
@@ -116,7 +124,7 @@ _make_service() {
 
 # boot the init system
 on_boot() {
-  run_scripts_in_order post-boot.d
+  run_scripts_in_order "$POST_BOOT_D"
 }
 
 # halt the init system
@@ -126,7 +134,7 @@ on_halt() {
     kill_service "$ENABLED"
     log "$ENABLED" "Stopped service "`_get_service_name "$ENABLED"`" at PID "`_get_service_pid "$ENABLED"`"."
   done
-  run_scripts_in_order pre-halt.d
+  run_scripts_in_order "$PRE_HALT_D"
   exit
 }
 
