@@ -1,0 +1,150 @@
+#!/bin/sh
+# runit-inspired, minimalist init system
+ENABLED_DIR=./enabled # directory for enabled services
+HOLD=hold # file for temporarily disabling a service
+LAST_ENABLED= # list of services ("name:PID")
+LOG=log # cumulative log file
+RUN=run # entry point for a service
+
+# extract the name from a service
+_get_service_name() {
+  echo "$1" | cut -d ':' -f 1
+}
+
+# extract the PID from a service
+_get_service_pid() {
+  echo "$1" | cut -d ':' -f 2
+}
+
+# kill a service
+kill_service() {
+  echo "[$1]" `_get_service_name "$1"` `_get_service_pid "$1"`
+  kill -s TERM `_get_service_pid "$1"`
+}
+
+# log service information to the service's log file and STDOUT
+log() {
+  echo "$1 $2"
+  echo "$2" | tee -a "$ENABLED_DIR/"`_get_service_name "$1"`"/$LOG"
+}
+
+# maintain enabled services
+maintain_services() {
+  while [ 1 ]
+  do
+    # redetermine service list,
+    # and disable those no longer listed
+
+    NEXT_ENABLED=
+    TO_DISABLE="$LAST_ENABLED"
+
+    for NAME in $(ls "$ENABLED_DIR")
+    do
+      # omit the service from the kill list
+      
+      _TO_DISABLE=
+       
+      for ENABLED in $TO_DISABLE
+      do
+        if [ -z `echo "$ENABLED" | grep "^$NAME:"` ] || [ -e "$ENABLED_DIR/"`_get_service_name "$ENABLED"`"/$HOLD" ]
+        then
+          _TO_DISABLE="$_TO_DISABLE `echo \"$ENABLED\"`" # workaround to preserve quotation when necessary
+	fi
+      done
+      TO_DISABLE="$_TO_DISABLE"
+      
+      if [ -e "$ENABLED_DIR/$NAME/$HOLD" ]
+      then
+	# don't even bother starting it
+
+        continue
+      fi
+      
+      # determine whether the service is already running
+      
+      LAST_PID=
+      SCRIPT="$ENABLED_DIR/$NAME/$RUN"
+      PID=`pgrep -f "$SCRIPT"`
+
+      for ENABLED in $(echo "$LAST_ENABLED")
+      do
+        if [ ! -z `echo "$ENABLED" | grep "^$NAME:"` ]
+        then
+          LAST_PID=`_get_service_pid "$ENABLED"`
+          break
+	fi
+      done
+      
+      # ensure the service is running
+
+      if [ -z "$LAST_PID" ] || [ -z `pgrep -f "$SCRIPT" | grep "^$LAST_PID\$"` ]
+      then
+	# service dead or not started
+	
+	[ -e "$SCRIPT" ] && sh "$SCRIPT" & #> /dev/null 2>&1 &
+	PID=$!
+        SERVICE=`_make_service "$NAME" "$PID"`
+
+	if [ -z "$LAST_PID" ]
+        then
+	  log "$SERVICE" "Started service \"$NAME\" at PID $PID."
+	else
+	  log "$SERVICE" "Restarted service \"$NAME\" at PID $PID."
+	fi
+      else
+        SERVICE=`_make_service "$NAME" "$LAST_PID"`
+      fi
+      NEXT_ENABLED="$NEXTENABLED `_make_service \"$NAME\" \"$PID\"`"
+    done
+    
+    # disable services
+    
+    for ENABLED in $TO_DISABLE
+    do
+      kill_service "$ENABLED"
+      log "$ENABLED" "Stopped service "`_get_service_name "$ENABLED"`" at PID "`_get_service_pid "$ENABLED"`"."
+    done
+    LAST_ENABLED="$NEXT_ENABLED"
+    sleep 1
+  done
+}
+
+# construct a service from a name and PID
+_make_service() {
+  echo "$1:$2"
+}
+
+# boot the init system
+on_boot() {
+  run_scripts_in_order post-boot.d
+}
+
+# halt the init system
+on_halt() {
+  for ENABLED in $LAST_ENABLED
+  do
+    kill_service "$ENABLED"
+    log "$ENABLED" "Stopped service "`_get_service_name "$ENABLED"`" at PID "`_get_service_pid "$ENABLED"`"."
+  done
+  run_scripts_in_order pre-halt.d
+  exit
+}
+
+# run scripts within a directory in sorted (using `sort -h`) order
+run_scripts_in_order() {
+  for SCRIPT in $(ls "$1" | sort -h)
+  do
+    sh "$1/$SCRIPT"
+  done
+}
+
+# prep eventual halt
+
+trap on_halt ABRT HUP INT TERM
+
+# 3-stage system
+
+on_boot
+maintain_services
+on_halt # should be unreachable
+
