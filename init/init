@@ -8,34 +8,10 @@ then
   WD="$1"
 fi
 
-SHELL=`cat "$WD/shell" 2>&1`
-
-if [ $? != "0" ]
-then
-  # use default value
-  
-  SHELL=sh
-fi
-SIG=`cat "$WD/sig" 2>&1`
-
-if [ $? != "0" ]
-then
-  # use default value
-  
-  SIG=TERM
-fi
-SLEEP=`cat "$WD/sleep" 2>&1`
-
-if [ $? != "0" ]
-then
-  # use default value
-  
-  SLEEP=1
-fi
-
 # nonconfigurable globals
 
 ALIVE=1 # global halt trigger
+CONFIG_DIR="$WD/config" # configuration directory
 ENABLED_DIR=$WD/enabled # directory for enabled services
 HOLD_FILE=hold # hold file for a service (its presence disables the service)
 LAST_ENABLED= # list of services
@@ -45,6 +21,33 @@ PID_FILE=pid # PID file
 POST_BOOT_D_DIR=$WD/post-boot.d # post-boot scripts directory
 PRE_HALT_D_DIR=$WD/pre-halt.d # pre-halt scripts directory
 RUN_FILE=run # service entry point
+
+# configurable globals
+
+SHELL=`cat "$CONFIG_DIR/shell" 2>&1`
+
+if [ $? != "0" ]
+then
+  # use default value
+  
+  SHELL=sh
+fi
+SIG=`cat "$CONFIG_DIR/sig" 2>&1`
+
+if [ $? != "0" ]
+then
+  # use default value
+  
+  SIG=TERM
+fi
+SLEEP=`cat "$CONFIG_DIR/sleep" 2>&1`
+
+if [ $? != "0" ]
+then
+  # use default value
+  
+  SLEEP=1
+fi
 
 # enable a service and return its PID, or 0 on failure
 enable_service() {

@@ -14,6 +14,7 @@ COMMAND
 SERVICE
 	the service name"
 WD=.
+CONFIG_DIR="$WD/config"
 ENABLED_DIR="$WD/enabled"
 HOLD_FILE=hold
 OUT_FILE=out
@@ -25,6 +26,29 @@ SERVICE_HOLD_FILE="$SERVICE_DIR/$HOLD_FILE"
 SERVICE_OUT_FILE="$SERVICE_DIR/$OUT_FILE"
 SERVICE_PID_FILE="$SERVICE_DIR/$PID_FILE"
 SHELL=`cat "$WD/shell" 2>&1`
+
+if [ $? != "0" ]
+then
+  # use default value
+  
+  SHELL=sh
+fi
+SIG=`cat "$CONFIG_DIR/sig" 2>&1`
+
+if [ $? != "0" ]
+then
+  # use default value
+  
+  SIG=TERM
+fi
+SLEEP=`cat "$CONFIG_DIR/sleep" 2>&1`
+
+if [ $? != "0" ]
+then
+  # use default value
+  
+  SLEEP=1
+fi
 
 # get a service's PID
 get_service_pid() {
@@ -55,29 +79,6 @@ is_running() {
   fi
   return 1
 }
-
-if [ $? != "0" ]
-then
-  # use default value
-  
-  SHELL=sh
-fi
-SIG=`cat "$WD/sig" 2>&1`
-
-if [ $? != "0" ]
-then
-  # use default value
-  
-  SIG=TERM
-fi
-SLEEP=`cat "$WD/sleep" 2>&1`
-
-if [ $? != "0" ]
-then
-  # use default value
-  
-  SLEEP=1
-fi
 
 if [ ! -e "$SERVICE_DIR" ]
 then
