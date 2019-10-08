@@ -1,4 +1,11 @@
 # a runit-inspired init system
+## vulnerabilities
+- configuration values are NOT verified
+- input values (such as service names) are NOT sanitized
+
+## configuration
+done via `./config/property` (analogoud to virtual filesystems in Linux)
+
 ## runlevels
 ### post-boot
 - entered immediately

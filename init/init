@@ -37,15 +37,13 @@ SIG=`cat "$CONFIG_DIR/sig" 2>&1`
 if [ $? != "0" ]
 then
   # use default value
-  
+
   SIG=TERM
 fi
 SLEEP=`cat "$CONFIG_DIR/sleep" 2>&1`
 
 if [ $? != "0" ]
 then
-  # use default value
-  
   SLEEP=1
 fi
 
