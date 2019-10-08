@@ -1,6 +1,6 @@
 #!/bin/sh
 while [ 1 ]
 do
-  echo `date` >> test
+  echo `date`
   sleep 1
 done

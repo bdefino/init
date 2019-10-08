@@ -1,0 +1,11 @@
+Tue 08 Oct 2019 12:32:18 AM EDT [System] Entering post-boot phase.
+Tue 08 Oct 2019 12:32:18 AM EDT [System] Done executing scripts.
+Tue 08 Oct 2019 12:32:18 AM EDT [Service "skel"] Started service at PID 15366.
+Tue 08 Oct 2019 12:35:15 AM EDT [Service "skel"] Stopped service with SIGTERM.
+Tue 08 Oct 2019 12:35:18 AM EDT [Service "skel"] Started service at PID 18585.
+Tue 08 Oct 2019 12:35:26 AM EDT [Service "skel"] Stopped service with SIGTERM.
+Tue 08 Oct 2019 12:35:28 AM EDT [Service "skel"] Started service at PID 18762.
+Tue 08 Oct 2019 12:35:50 AM EDT [Service "skel"] Stopped service with SIGTERM.
+Tue 08 Oct 2019 12:36:04 AM EDT [System] Received terminating signal.
+Tue 08 Oct 2019 12:36:04 AM EDT [System] Entering pre-halt phase.
+Tue 08 Oct 2019 12:36:08 AM EDT [System] Done executing scripts.
