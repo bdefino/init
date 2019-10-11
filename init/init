@@ -1,17 +1,17 @@
 #!/bin/sh
 # Unix interface wrapper for `service-core`, but actually handles halt/reboot as well
-SERVICE_CORE_DIR=/var/service-core
+WD=/var/service-core
+
+. `realpath "$SERVICE_CORE_DIR/config"` || exit 1
+
 CMD=
-CONFIG_DIR="$SERVICE_CORE_DIR/config"
-PID_FILE="$SERVICE_CORE_DIR/state/pid"
-PID=`cat "$PID_FILE"`
-SLEEP=`cat $CONFIG_DIR/sleep`
+CORE_PID_FILE="$SERVICE_CORE_DIR/state/pid"
+PID=`cat "$CORE_PID_FILE"`
 
-if [ $? != "0" ]
+if [ ! $? ] || [ -z "$PID" ]
 then
-  # use default value
-
-  SLEEP=1
+  echo "No \`service-core\` instance detected."
+  exit
 fi
 
 case $1

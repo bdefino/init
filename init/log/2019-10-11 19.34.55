@@ -1,0 +1,6 @@
+Fri 11 Oct 2019 07:34:52 PM EDT ["skel"] Started service at PID 28271.
+Fri 11 Oct 2019 07:34:53 PM EDT ["skel"] Started service at PID 28303.
+Fri 11 Oct 2019 07:34:53 PM EDT ["skel"] Started service at PID 28317.
+Fri 11 Oct 2019 07:34:54 PM EDT [service-core] Received terminating signal.
+Fri 11 Oct 2019 07:34:54 PM EDT [service-core] Entering pre-halt phase.
+Fri 11 Oct 2019 07:34:55 PM EDT [service-core] Done executing scripts.

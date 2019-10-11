@@ -1,7 +1,0 @@
-Fri 11 Oct 2019 09:40:26 AM EDT [System] Entering post-boot phase.
-Fri 11 Oct 2019 09:40:26 AM EDT [System] Done executing scripts.
-Fri 11 Oct 2019 09:40:30 AM EDT [Service "skel"] Started service at PID 15115.
-Fri 11 Oct 2019 09:40:33 AM EDT [Service "skel"] Stopped service with SIGTERM.
-Fri 11 Oct 2019 09:40:57 AM EDT [System] Received terminating signal.
-Fri 11 Oct 2019 09:40:58 AM EDT [System] Entering pre-halt phase.
-Fri 11 Oct 2019 09:40:59 AM EDT [System] Done executing scripts.

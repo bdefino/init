@@ -1,5 +1,5 @@
 #/bin/sh
-# user interface for `service-core`
+# external interface for `service-core`
 COMMAND="$1"
 USAGE="Usage: ./$0 COMMAND SERVICE
 COMMAND
@@ -13,78 +13,24 @@ COMMAND
 		place a persistent hold on SERVICE
 SERVICE
 	the service name"
-WD=.
-CONFIG_DIR="$WD/config"
-ENABLED_DIR="$WD/enabled"
-HOLD_FILE=hold
-OUT_FILE=out
-PID_FILE=pid
-RUN_FILE=run
-SERVICE="$2"
-SERVICE_DIR="$ENABLED_DIR/$SERVICE"
-SERVICE_HOLD_FILE="$SERVICE_DIR/$HOLD_FILE"
-SERVICE_OUT_FILE="$SERVICE_DIR/$OUT_FILE"
-SERVICE_PID_FILE="$SERVICE_DIR/$PID_FILE"
-SHELL=`cat "$WD/shell" 2>&1`
 
-if [ $? != "0" ]
+# grab utilities
+
+. `realpath "service-core"` --source-only ######################can't pass args via . in POSIX
+
+if [ ! $? ]
 then
-  # use default value
-  
-  SHELL=sh
+  echo "Failed to source \`service-core\`."
+  exit 1
 fi
-SIG=`cat "$CONFIG_DIR/sig" 2>&1`
+_SERVICE="$2"
+_SERVICE_DIR="$ENABLED_DIR/$SERVICE"
 
-if [ $? != "0" ]
-then
-  # use default value
-  
-  SIG=TERM
-fi
-SLEEP=`cat "$CONFIG_DIR/sleep" 2>&1`
-
-if [ $? != "0" ]
-then
-  # use default value
-  
-  SLEEP=1
-fi
-
-# get a service's PID
-get_service_pid() {
-  PID=`cat "$ENABLED_DIR/$1/$PID_FILE" 2>&1`
-  
-  if [ $? != "0" ]
-  then
-    # no PID file
-    return 0
-  fi
-  return $PID > /dev/null 2>&1
-  return 0 # invalid PID
-}
-
-# check whether a service is running
-is_running() {
-  get_service_pid "$1"
-  PID=$?
-  
-  if [ $PID = "0" ]
-  then
-    return 1
-  fi
-  
-  if [ ! -z `pgrep -f "$ENABLED_DIR/$1/$RUN_FILE" | grep "^$PID\$"` ]
-  then
-    return 0
-  fi
-  return 1
-}
-
-if [ ! -e "$SERVICE_DIR" ]
+if [ ! -e "$_SERVICE_DIR" ]
 then
   echo "Unrecognized service." >&2
   exit 1
-elif [ ! -d "$SERVICE_DIR" ]
+elif [ ! -d "$_SERVICE_DIR" ]
 then
   echo "Not a service directory." >&2
   exit 1
@@ -93,59 +39,52 @@ fi
 case "$COMMAND"
 in
   restart)
-    touch "$SERVICE_HOLD_FILE"
+    hold_service "$_SERVICE"
     
-    # wait for the PID file to disappear
-    
-    while [ -e "$SERVICE_PID_FILE" ]
+    while is_running "$_SERVICE"
     do
       sleep "$SLEEP";
     done
-    rm "$SERVICE_HOLD_FILE"
+    unhold_service "$_SERVICE"
     
-    # wait for the PID file to reappear
-    
-    while [ ! -e "$SERVICE_PID_FILE" ]
+    while ! is_running "$_SERVICE"
     do
       sleep "$SLEEP";
     done
-    echo "Service \"$SERVICE\" to be restarted."
+    echo "Restarted service \"$_SERVICE\"."
     ;;
   "start")
-    rm "$SERVICE_HOLD_FILE" > /dev/null 2>&1
+    unset_hold "$_SERVICE"
     
-    # wait for the PID file to appear
-    
-    while [ ! -e "$SERVICE_PID_FILE" ]
+    while ! is_running "$_SERVICE"
     do
       sleep "$SLEEP"
     done
-    echo "Service \"$SERVICE\" started."
+    echo "Started service \"$_SERVICE\"."
     ;;
   "status")
-      if is_running "$SERVICE"
+      if is_running "$_SERVICE"
       then
-        echo "Service \"$SERVICE\" is running."
-      elif [ -e "$SERVICE_HOLD_FILE" ]
+        echo "Service \"$_SERVICE\" is running."
+      elif [ -e "$SERVICE_DIR/hold" ]
       then
-        echo "Service \"$SERVICE\" is stopped."
+        echo "Service \"$_SERVICE\" is stopped."
       else
-        echo "Service \"$SERVICE\" crashed."
+        echo "Service \"$_SERVICE\" crashed."
       fi
     ;;
   "stop")
-    touch "$SERVICE_HOLD_FILE"
+    hold_service "$_SERVICE"
     
-    # wait for the PID file to disappear
-
-    while [ -e "$SERVICE_PID_FILE" ]
+    while is_running "$_SERVICE"
     do
       sleep "$SLEEP"
     done
-    echo "Stopped service \"$SERVICE\"."
+    echo "Stopped service \"$_SERVICE\"."
     ;;
   *)
     echo "Invalid command." >&2
     echo "$HELP"
     exit 1
 esac
+

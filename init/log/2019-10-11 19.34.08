@@ -1,0 +1,6 @@
+Fri 11 Oct 2019 07:34:06 PM EDT [service-core] Entering post-boot phase.
+Fri 11 Oct 2019 07:34:06 PM EDT [service-core] Done executing scripts.
+Fri 11 Oct 2019 07:34:07 PM EDT [service-core] Received terminating signal.
+Fri 11 Oct 2019 07:34:07 PM EDT [service-core] Entering pre-halt phase.
+Fri 11 Oct 2019 07:34:08 PM EDT ["skel"] Stopped service with TERM.
+Fri 11 Oct 2019 07:34:08 PM EDT [service-core] Done executing scripts.
