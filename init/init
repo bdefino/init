@@ -1,342 +1,39 @@
 #!/bin/sh
-# runit-inspired, minimalist init system
-# Usage: ./$0 [WD]
-WD=.
-
-if [ ! -z "$1" ]
-then
-  WD="$1"
-fi
-
-# nonconfigurable globals
-
-ALIVE=1 # global halt trigger
-CONFIG_DIR="$WD/config" # configuration directory
-ENABLED_DIR=$WD/enabled # directory for enabled services
-HOLD_FILE=hold # hold file for a service (its presence disables the service)
-LAST_ENABLED= # list of services
-LOG_FILE=$WD/log # global log file
-OUT_FILE=out # service output
-PID_FILE=pid # PID file
-POST_BOOT_D_DIR=$WD/post-boot.d # post-boot scripts directory
-PRE_HALT_D_DIR=$WD/pre-halt.d # pre-halt scripts directory
-RUN_FILE=run # service entry point
-
-# configurable globals
-
-SHELL=`cat "$CONFIG_DIR/shell" 2>&1`
-
-if [ $? != "0" ]
-then
-  # use default value
-  
-  SHELL=sh
-fi
-SIG=`cat "$CONFIG_DIR/sig" 2>&1`
+# Unix interface wrapper for `service-core`, but actually handles halt/reboot as well
+SERVICE_CORE_DIR=/var/service-core
+CMD=
+CONFIG_DIR="$SERVICE_CORE_DIR/config"
+PID_FILE="$SERVICE_CORE_DIR/state/pid"
+PID=`cat "$PID_FILE"`
+SLEEP=`cat $CONFIG_DIR/sleep`
 
 if [ $? != "0" ]
 then
   # use default value
 
-  SIG=TERM
-fi
-SLEEP=`cat "$CONFIG_DIR/sleep" 2>&1`
-
-if [ $? != "0" ]
-then
   SLEEP=1
 fi
 
-# enable a service and return its PID, or 0 on failure
-enable_service() {
-  SERVICE_DIR="$ENABLED_DIR/$1"
-  SERVICE_RUN_FILE="$SERVICE_DIR/$RUN_FILE"
-  
-  # check for a hold on the service
-  
-  if [ -e "$SERVICE_DIR/$HOLD_FILE" ]
-  then
-    # there's a hold on the service
-
-    return 0
-  fi
-  
-  # check for an entry point
-  
-  if [ ! -e "$SERVICE_RUN_FILE" ]
-  then
-    # no service entry point
-    
-    return 0
-  fi
-  
-  # check whether the service is already running
-  
-  if is_running "$1"
-  then
-    # already running
-    
-    get_service_pid "$1"
-    return $?
-  fi
-  
-  # not running
-  
-  "$SHELL" "$SERVICE_RUN_FILE" > "$SERVICE_DIR/$OUT_FILE" 2>&1 &
-  PID=$!
-  
-  if [ $PID != "0" ]
-  then
-    set_service_pid "$1" $PID
-    
-    if [ -z `echo "$LAST_ENABLED" | grep "^$1\$"` ]
-    then
-      log "$1" "Started service at PID $PID."
-    else
-      log "$1" "Restarted service at PID $PID."
-    fi
-  else
-    log "$1" "Failed to start service."
-  fi
-  return $PID
-}
-
-# get a service's PID
-get_service_pid() {
-  PID=`cat "$ENABLED_DIR/$1/$PID_FILE" 2>&1`
-  
-  if [ $? != "0" ]
-  then
-    # no PID file
-    return 0
-  fi
-  return $PID > /dev/null 2>&1
-  return 0 # invalid PID
-}
-
-# check whether a service is running
-is_running() {
-  get_service_pid "$1"
-  PID=$?
-  
-  if [ $PID = "0" ]
-  then
-    return 1
-  fi
-  
-  if [ ! -z `pgrep -f "$ENABLED_DIR/$1/$RUN_FILE" | grep "^$PID\$"` ]
-  then
-    return 0
-  fi
-  return 1
-}
-
-# kill a service
-kill_service() {
-  # check whether it's running
-   
-  if ! is_running "$1"
-  then
-    return 0
-  fi
-  
-  # get the PID
-  
-  get_service_pid "$1"
-  PID=$?
-  
-  if [ $PID = "0" ]
-  then
-    return 0
-  fi
-  
-  # kill it
-  
-  kill -s "$SIG" "$PID"
-  RETVAL=$?
-  
-  if [ $RETVAL = "0" ]
-  then
-    # remove the PID file
-    
-    unset_service_pid "$1"
-    log "$1" "Stopped service with SIG$SIG."
-  else
-    log "$1" "Failed to stop service with SIG$SIG."
-  fi
-  return $RETVAL
-}
-
-# log service information to the global log file and STDOUT
-# of the format "DATE [CLASS_SPEC] MESSAGE"
-log() {
-  CLASS_SPEC="Service \"$1\""
-  
-  if [ -z "$1" ]
-  then
-    # global message
-    
-    CLASS_SPEC=System
-  fi
-  echo `date` "[$CLASS_SPEC]" "$2" | tee -a "$LOG_FILE"
-}
-
-# maintain enabled services
-maintain_services() {
-  while [ $ALIVE ]
-  do
-    # redetermine service list,
-    # and disable those no longer listed
-
-    NEXT_ENABLED=
-    TO_DISABLE="$LAST_ENABLED"
-
-    for SERVICE in $(ls "$ENABLED_DIR")
-    do
-      # determine whether to disable the service
-      
-      _TO_DISABLE=
-      
-      for ENABLED in $TO_DISABLE
-      do
-        # only skip if it's the current service,
-        # and there's no hold file
-        
-        if [ "$ENABLED" = "$SERVICE" ] && [ ! -e "$ENABLED_DIR/$ENABLED/$HOLD_FILE" ]
-        then
-          # don't disable
-          
-          continue
-        fi
-        _TO_DISABLE="$_TO_DISABLE\n"`echo "$ENABLED"`
-      done
-      TO_DISABLE=`strip_preceding_line "$_TO_DISABLE"`
-      
-      # don't start any new services
-
-      if [ ! $ALIVE ]
-      then
-        return
-      fi
-
-      # attempt to enable the service
-      
-      enable_service "$SERVICE"
-      PID=$?
-      
-      if [ "$PID" != "0" ]
-      then
-        NEXT_ENABLED="$NEXT_ENABLED\n"`echo "$SERVICE"`
-      fi
-    done
-    
-    # disable services
-    
-    for ENABLED in $TO_DISABLE
-    do
-      kill_service "$ENABLED"
-    done
-    LAST_ENABLED=`strip_preceding_line "$NEXT_ENABLED"`
-    sleep "$SLEEP"
-  done
-}
-
-# boot the init system
-on_boot() {
-  log "" "Entering post-boot phase."
-  run_scripts_in_order "$POST_BOOT_D_DIR"
-}
-
-# halt the init system
-on_halt() {
-  ALIVE=0 # global halt order
-  
-  log "" "Received terminating signal."
-  log "" "Entering pre-halt phase."
-
-  sleep "$SLEEP" # wait for the maintenance function to terminate
-
-  for ENABLED in $LAST_ENABLED
-  do
-    kill_service "$ENABLED"
-  done
-  run_scripts_in_order "$PRE_HALT_D_DIR"
-  exit 0
-}
-
-# run scripts within a directory in sorted (using `sort -h`) order
-run_scripts_in_order() {
-  if [ ! -d "$1" ]
-  then
-    log "" "Invalid script directory."
-    return 1
-  fi
-  
-  for SCRIPT in $(ls "$1" | sort -h)
-  do
-    SCRIPT="$1/$SCRIPT"
-    log "" "Executing \"$SCRIPT\"..."
-    sh "$SCRIPT"
-  done
-  log "" "Done executing scripts."
-}
-
-# set a service's PID
-set_service_pid() {
-  if [ -z "$1" ]
-  then
-    return 1
-  fi
-  echo "$2" > "$ENABLED_DIR/$1/$PID_FILE"
-  return $?
-}
-
-# strip the preceding line from a string
-strip_preceding_line() {
-  echo "$1" | cut --complement -d "
-" -f 1
-}
-
-# unset a service's PID
-unset_service_pid() {
-  if [ -z "$1" ]
-  then
-    return 1
-  fi
-  rm "$ENABLED_DIR/$1/$PID_FILE" > /dev/null 2>&1
-}
-
-# prep eventual halt
-
-trap on_halt ABRT HUP INT TERM
-
-# create directories
-
-for DIR in "$WD" "$ENABLED_DIR" "$POST_BOOT_D_DIR" "$PRE_HALT_D_DIR"
-do
-  if [ ! -e "$DIR" ]
-  then
-    if ! mkdir -p "$DIR"
-    then
-      log "" "Failed to create \"$DIR\"." > /dev/null 2>&1
-      echo "Failed to create \"$DIR\"."
-      exit 1
-    fi
-  elif [ ! -d "$DIR" ]
-  then
-    log "" "\"$DIR\" exists, and isn't a directory." > /dev/null 2>&1
-    echo "\"$DIR\" exists, and isn't a directory."
+case $1
+in
+  0)
+    CMD=halt
+    ;;
+  6)
+    CMD=reboot
+    ;;
+  *)
+    echo "Expected 0 or 6." >&2
     exit 1
-  fi
+esac
+
+kill -s TERM "$PID"
+echo -n "Waiting for \`service-core\` to terminate..."
+
+while [ -e "$PID_FILE" ]
+do
+  sleep "$SLEEP"
 done
-
-# clear global log
-
-> "$LOG_FILE"
-
-# 3-stage system
-
-on_boot
-maintain_services
-on_halt # should be unreachable
+echo "done."
+"$CMD" -f
 

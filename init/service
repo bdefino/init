@@ -1,5 +1,5 @@
 #/bin/sh
-# `init` user interface
+# user interface for `service-core`
 COMMAND="$1"
 USAGE="Usage: ./$0 COMMAND SERVICE
 COMMAND
