@@ -16,7 +16,7 @@ SERVICE
 
 # grab utilities
 
-. `realpath "service-core"` --source-only ######################can't pass args via . in POSIX
+. ./source-service-core
 
 if [ ! $? ]
 then
@@ -24,7 +24,8 @@ then
   exit 1
 fi
 _SERVICE="$2"
-_SERVICE_DIR="$ENABLED_DIR/$SERVICE"
+_SERVICE_DIR="$ENABLED_DIR/$_SERVICE"
+_SERVICE_HOLD_FILE="$SERVICE_DIR/$HOLD_FILE"
 
 if [ ! -e "$_SERVICE_DIR" ]
 then
@@ -39,7 +40,7 @@ fi
 case "$COMMAND"
 in
   restart)
-    hold_service "$_SERVICE"
+    is_running "$_SERVICE" && hold_service "$_SERVICE"
     
     while is_running "$_SERVICE"
     do
@@ -54,7 +55,7 @@ in
     echo "Restarted service \"$_SERVICE\"."
     ;;
   "start")
-    unset_hold "$_SERVICE"
+    ! is_running "$_SERVICE" && unhold_service "$_SERVICE"
     
     while ! is_running "$_SERVICE"
     do
@@ -66,7 +67,7 @@ in
       if is_running "$_SERVICE"
       then
         echo "Service \"$_SERVICE\" is running."
-      elif [ -e "$SERVICE_DIR/hold" ]
+      elif [ -e "$_SERVICE_HOLD_FILE" ]
       then
         echo "Service \"$_SERVICE\" is stopped."
       else
@@ -74,7 +75,7 @@ in
       fi
     ;;
   "stop")
-    hold_service "$_SERVICE"
+    is_running "$_SERVICE" && hold_service "$_SERVICE"
     
     while is_running "$_SERVICE"
     do

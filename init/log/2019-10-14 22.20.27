@@ -1,0 +1,7 @@
+Mon 14 Oct 2019 10:12:31 PM EDT [service-core] Entering post-boot phase.
+Mon 14 Oct 2019 10:12:31 PM EDT [service-core] Done executing scripts.
+Mon 14 Oct 2019 10:12:31 PM EDT ["skel"] Started service at PID 7362.
+Mon 14 Oct 2019 10:20:24 PM EDT [service-core] Received terminating signal.
+Mon 14 Oct 2019 10:20:26 PM EDT [service-core] Entering pre-halt phase.
+Mon 14 Oct 2019 10:20:27 PM EDT ["skel"] Stopped service with TERM.
+Mon 14 Oct 2019 10:20:27 PM EDT [service-core] Done executing scripts.

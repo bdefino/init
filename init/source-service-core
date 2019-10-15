@@ -1,0 +1,6 @@
+#!/bin/sh
+# source "service-core" in the working directory through a couple methods
+# Usage: ./$0
+SERVICE_CORE_SOURCE_ONLY=1
+. ./service-core --source-only
+

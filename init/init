@@ -1,14 +1,14 @@
 #!/bin/sh
 # Unix interface wrapper for `service-core`, but actually handles halt/reboot as well
-WD=/var/service-core
+WD=. #/var/service-core
 
-. `realpath "$SERVICE_CORE_DIR/config"` || exit 1
+. `realpath "$WD/config"` || exit 1
 
 CMD=
-CORE_PID_FILE="$SERVICE_CORE_DIR/state/pid"
-PID=`cat "$CORE_PID_FILE"`
+SERVICE_CORE_PID_FILE="$WD/state/pid"
+SERVICE_CORE_PID=`cat "$SERVICE_CORE_PID_FILE"`
 
-if [ ! $? ] || [ -z "$PID" ]
+if [ ! $? ] || [ -z "$SERVICE_CORE_PID" ]
 then
   echo "No \`service-core\` instance detected."
   exit
@@ -27,10 +27,10 @@ in
     exit 1
 esac
 
-kill -s TERM "$PID"
+kill -s TERM "$SERVICE_CORE_PID"
 echo -n "Waiting for \`service-core\` to terminate..."
 
-while [ -e "$PID_FILE" ]
+while [ -e "$SERVICE_CORE_PID_FILE" ]
 do
   sleep "$SLEEP"
 done
