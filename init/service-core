@@ -2,7 +2,7 @@
 # runit-inspired, minimalist init system
 # Usage: ./$0 [-s | --source-only]
 #   -s, --source-only allow POSIX shell sourcing: don't start the core (can also be triggered by setting "$SERVICE_CORE_SOURCE_ONLY" to a nonempty value
-######################################################################eliminate TOCTOU race conditions via `flock` (but need file descriptors) 
+##############eliminate TOCTOU race conditions via `flock PATH COMMAND` (but need file descriptors) 
 CONFIG_DIR=. # /etc/service-core # configuration directory
 CONFIG_FILE="$CONFIG_DIR/config" # configuration file
 WD=. # /var/service-core # working directory
@@ -25,27 +25,28 @@ STATE_DIR="$WD/state" # directory for core state information (PIDs, etc.)
 STATE_ENABLED_DIR="$STATE_DIR/enabled" # state directory for enabled services
 
 # grab configurable globals
-
-if ! . `realpath "$CONFIG_FILE"` > /dev/null 2>&1
+##################################################need `flock` wrapper????
+if ! flock . `realpath "$CONFIG_FILE"` > /dev/null 2>&1
 then
   echo "Failed to include \"$CONFIG_FILE\"; using defaults."
 fi
 
 # get a service's PID
 get_service_pid() {
-  PID=`cat "$STATE_ENABLED_DIR/$1/$PID_FILE" 2>&1`
+  SERVICE_PID_FILE="$STATE_ENABLED_DIR/$1/$PID_FILE"
+  PID=`flock "$SERVICE_PID_FILE" cat "$SERVICE_PID_FILE" 2>/dev/null`
   
   if [ $? != "0" ]
   then
     return 0
   fi
-  return $PID > /dev/null 2>&1
+  return $PID 2>/dev/null
   
   # invalid PID (not an integer)
   
   return 0
 }
-
+#################everything after this needs `flock` wrappers
 # place a service on hold
 hold_service() {
   if [ -z "$1" ]
