@@ -2,6 +2,7 @@
 # runit-inspired, minimalist init system
 # Usage: ./$0 [-s | --source-only]
 #   -s, --source-only allow POSIX shell sourcing: don't start the core (can also be triggered by setting "$SERVICE_CORE_SOURCE_ONLY" to a nonempty value
+######################################################################eliminate TOCTOU race conditions via `flock` (but need file descriptors) 
 CONFIG_DIR=. # /etc/service-core # configuration directory
 CONFIG_FILE="$CONFIG_DIR/config" # configuration file
 WD=. # /var/service-core # working directory
@@ -25,8 +26,6 @@ STATE_ENABLED_DIR="$STATE_DIR/enabled" # state directory for enabled services
 
 # grab configurable globals
 
-
-
 if ! . `realpath "$CONFIG_FILE"` > /dev/null 2>&1
 then
   echo "Failed to include \"$CONFIG_FILE\"; using defaults."
@@ -42,7 +41,7 @@ get_service_pid() {
   fi
   return $PID > /dev/null 2>&1
   
-  # invalid PID
+  # invalid PID (not an integer)
   
   return 0
 }
