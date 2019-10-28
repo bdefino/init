@@ -127,7 +127,9 @@ on_halt() {
   log "" "Received terminating signal."
   log "" "Entering pre-halt phase."
 
-  sleep "$SLEEP" # wait for the maintenance function to terminate
+  sleep "$SLEEP" # wait for the maintenance function to gracefully terminate
+
+  # stop the services
 
   for ENABLED in $(ls "$STATE_ENABLED_DIR")
   do
@@ -231,7 +233,7 @@ start_service() {
   return $PID
 }
 
-# stop a service
+# stop (reap) a service
 stop_service() {
   # check whether the service is running
    
@@ -250,10 +252,11 @@ stop_service() {
     return 0
   fi
   
-  # stop the service
+  # reap the service
   
   kill -s "$SIG" "$PID"
   RETVAL=$?
+  wait "$PID" # ignore exit status
   
   if [ $RETVAL = "0" ]
   then
