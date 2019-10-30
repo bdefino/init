@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/env sh
 # Unix interface wrapper for `service-core`, but actually handles halt/reboot as well
 WD=. #/var/service-core
 

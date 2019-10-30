@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/env sh
 # runit-inspired, minimalist init system
 # Usage: ./$0 [-s | --source-only]
 #   -s, --source-only allow POSIX shell sourcing: don't start the core (can also be triggered by setting "$SERVICE_CORE_SOURCE_ONLY" to a nonempty value

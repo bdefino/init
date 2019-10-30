@@ -1,4 +1,4 @@
-#/bin/sh
+#/bin/env sh
 # external interface for `service-core`
 COMMAND="$1"
 USAGE="Usage: ./$0 COMMAND SERVICE
