@@ -4,13 +4,13 @@
 - input values (such as service names) are NOT sanitized
 - failure to observe locks on the `./state` directory
 
-## configuration
-done via `./config/property` (analogoud to virtual filesystems in Linux)
-
 ## usage
 - `service-core`: start/maintain services
 - `service`: manage a service
 - `init`: \*nix `init` replacement
+
+### configuration
+via `./config` (POSIX shell script)
 
 ## runlevels
 ### post-boot
